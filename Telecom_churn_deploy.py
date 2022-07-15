@@ -11,6 +11,8 @@ from flask import Flask, request, render_template
 from flask import Flask
 app = Flask(__name__)
 
+df_1 = pd.read_csv(r'C:\Users\91977\Desktop\first_telc.csv')
+
 
 @app.route("/")
 def loadPage():
@@ -53,9 +55,24 @@ def Tele_ChurnPrediction():
                                          'PaymentMethod', 'tenure'])
 
     #final_df=pd.concat([new_df__dummies, new_dummy], axis=1)
+    df_2 = pd.concat([df_1, new_df], ignore_index=True)
+    # Group the tenure in bins of 12 months
+    labels = ["{0} - {1}".format(i, i + 11) for i in range(1, 72, 12)]
 
-    single = model.predict(new_df)
-    probablity = model.predict_proba(new_df)[:, 1]
+    df_2['tenure_group'] = pd.cut(df_2.tenure.astype(
+        int), range(1, 80, 12), right=False, labels=labels)
+    # drop column customerID and tenure
+    df_2.drop(columns=['tenure'], axis=1, inplace=True)
+
+    new_df__dummies = pd.get_dummies(df_2[['gender', 'SeniorCitizen', 'Partner', 'Dependents', 'PhoneService',
+                                           'MultipleLines', 'InternetService', 'OnlineSecurity', 'OnlineBackup',
+                                           'DeviceProtection', 'TechSupport', 'StreamingTV', 'StreamingMovies',
+                                           'Contract', 'PaperlessBilling', 'PaymentMethod', 'tenure_group']])
+
+    #final_df=pd.concat([new_df__dummies, new_dummy], axis=1)
+
+    single = model.predict(new_df__dummies.tail(1))
+    probablity = model.predict_proba(new_df__dummies.tail(1))[:, 1]
 
     if single == 1:
         o1 = "This customer is likely to be churned!!"
